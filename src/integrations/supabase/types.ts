@@ -61,6 +61,42 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           created_at: string | null
@@ -470,6 +506,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          leave_requests: boolean | null
+          payroll_updates: boolean | null
+          performance_reviews: boolean | null
+          push_enabled: boolean | null
+          system_announcements: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          leave_requests?: boolean | null
+          payroll_updates?: boolean | null
+          performance_reviews?: boolean | null
+          push_enabled?: boolean | null
+          system_announcements?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          leave_requests?: boolean | null
+          payroll_updates?: boolean | null
+          performance_reviews?: boolean | null
+          push_enabled?: boolean | null
+          system_announcements?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -834,6 +909,39 @@ export type Database = {
         }
         Relationships: []
       }
+      report_templates: {
+        Row: {
+          configuration: Json
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          report_type: string
+          template_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          configuration: Json
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          report_type: string
+          template_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          report_type?: string
+          template_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       salary_components: {
         Row: {
           calculation_type: string
@@ -876,6 +984,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           value?: number | null
+        }
+        Relationships: []
+      }
+      saved_filters: {
+        Row: {
+          created_at: string | null
+          filter_config: Json
+          filter_name: string
+          id: string
+          is_default: boolean | null
+          module: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filter_config: Json
+          filter_name: string
+          id?: string
+          is_default?: boolean | null
+          module: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filter_config?: Json
+          filter_name?: string
+          id?: string
+          is_default?: boolean | null
+          module?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1004,6 +1142,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_attendance_stats: {
+        Args: { emp_user_id: string; end_date: string; start_date: string }
+        Returns: {
+          average_hours: number
+          present_days: number
+          total_days: number
+          total_hours: number
+        }[]
+      }
+      calculate_total_compensation: {
+        Args: { emp_id: string }
+        Returns: number
+      }
+      get_leave_balance: {
+        Args: { emp_user_id: string; leave_type_name: string; year_val: number }
+        Returns: {
+          remaining_days: number
+          total_days: number
+          used_days: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1012,6 +1171,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          action_type: string
+          changes_val?: Json
+          entity_id_val: string
+          entity_type_val: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "employee"

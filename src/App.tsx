@@ -25,8 +25,9 @@ import LeaveManagement from "./pages/LeaveManagement";
 import PerformanceAnalytics from "./pages/PerformanceAnalytics";
 import TimeTracking from "./pages/TimeTracking";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
-import SystemSettings from "./pages/SystemSettings";
-import NotFound from "./pages/NotFound";
+import SystemSettings from './pages/SystemSettings';
+import NotFound from './pages/NotFound';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Configure React Query client for data fetching
 const queryClient = new QueryClient();
@@ -98,6 +99,12 @@ const App = () => (
               <Route path="/settings" element={
                 <ProtectedRoute requireAdmin>
                   <SystemSettings />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               } />
               

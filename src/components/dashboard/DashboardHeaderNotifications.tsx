@@ -98,10 +98,7 @@ const DashboardHeaderNotifications = () => {
           <Button 
             variant="ghost" 
             className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-            onClick={() => {
-              // TODO: Navigate to full notifications page
-              console.log('Navigate to notifications page');
-            }}
+            onClick={() => window.location.href = '/notifications'}
           >
             View all notifications
           </Button>

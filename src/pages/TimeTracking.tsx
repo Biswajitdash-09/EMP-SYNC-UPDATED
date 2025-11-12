@@ -78,7 +78,7 @@ const TimeTracking = () => {
   const timeEntries = attendanceRecords.map(record => ({
     id: record.id,
     employeeId: record.user_id,
-    employeeName: 'Employee', // TODO: Join with profiles table
+    employeeName: (record as any).profiles?.full_name || (record as any).profiles?.email || 'Unknown',
     date: record.date,
     clockIn: record.check_in ? new Date(record.check_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '',
     clockOut: record.check_out ? new Date(record.check_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : undefined,

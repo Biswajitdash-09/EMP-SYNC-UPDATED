@@ -25,7 +25,7 @@ export const useAttendance = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all attendance records
+  // Fetch all attendance records with employee/profile information
   const { data: attendanceRecords = [], isLoading, error } = useQuery({
     queryKey: ATTENDANCE_KEY,
     queryFn: async () => {
@@ -37,7 +37,20 @@ export const useAttendance = () => {
         .limit(100);
 
       if (error) throw error;
-      return data as Attendance[];
+      
+      // Fetch profiles separately for employee names
+      const userIds = [...new Set(data.map(a => a.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      
+      return data.map(record => ({
+        ...record,
+        profiles: profileMap.get(record.user_id) || null
+      }));
     },
   });
 

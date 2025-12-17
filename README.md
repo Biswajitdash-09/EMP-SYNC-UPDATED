@@ -1,5 +1,7 @@
 Wlcome to the official repository of the Employee Management Sysytem
 
+The website is constantly being maintained by Biswajit Dash
+
 This project is built with:
 
 - Vite

@@ -1,6 +1,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '../utils/payslipContentGenerator';
 
 interface SalaryOverviewCardsProps {
@@ -24,7 +24,7 @@ const SalaryOverviewCards = ({ employee, totalAllowances, totalDeductions }: Sal
               <p className="text-sm font-medium text-gray-600">Basic Salary</p>
               <p className="text-2xl font-bold">{formatCurrency(employee.salary.basic)}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-blue-500" />
+            <IndianRupee className="w-8 h-8 text-blue-500" />
           </div>
         </CardContent>
       </Card>
@@ -60,7 +60,7 @@ const SalaryOverviewCards = ({ employee, totalAllowances, totalDeductions }: Sal
               <p className="text-sm font-medium text-gray-600">Net Salary</p>
               <p className="text-2xl font-bold">{formatCurrency(employee.salary.netSalary)}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-purple-500" />
+            <IndianRupee className="w-8 h-8 text-purple-500" />
           </div>
         </CardContent>
       </Card>

@@ -42,8 +42,8 @@ export const useEmployeeAuth = (onClose: () => void) => {
         return;
       }
 
-      // Validate credentials against employee records
-      const authData = authenticateEmployee(email, password);
+      // Validate credentials against Supabase auth
+      const authData = await authenticateEmployee(email, password);
       
       if (authData) {
         console.log('✅ Login successful, storing auth data');

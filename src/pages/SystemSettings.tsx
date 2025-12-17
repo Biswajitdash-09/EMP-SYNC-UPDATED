@@ -33,7 +33,7 @@ const SystemSettings = () => {
           website: 'https://www.empsync.com',
           industry: 'Technology',
           timezone: 'UTC-8',
-          currency: 'USD'
+          currency: 'INR'
         },
         notifications: {
           email: true,

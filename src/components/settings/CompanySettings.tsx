@@ -36,7 +36,7 @@ const CompanySettings = ({ initialData }: CompanySettingsProps) => {
     website: 'https://www.empsync.com',
     industry: 'Technology',
     timezone: 'UTC-8',
-    currency: 'USD'
+    currency: 'INR'
   });
 
   const [isSaving, setIsSaving] = useState(false);

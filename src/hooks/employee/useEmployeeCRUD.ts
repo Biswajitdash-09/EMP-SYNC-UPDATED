@@ -2,6 +2,7 @@
 /**
  * Employee CRUD operations hook
  * Handles create, update, delete operations for employees using direct table operations
+ * Now includes Supabase auth user creation for employee login
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,37 @@ export const useEmployeeCRUD = (refreshEmployees: () => Promise<void>) => {
   const addEmployee = async (employeeData: Partial<Employee>) => {
     try {
       console.log('➕ Adding new employee to Lovable Cloud:', employeeData.email);
+
+      let authUserId: string | null = null;
+
+      // Create Supabase auth user if login credentials are provided
+      if (employeeData.loginCredentials?.loginEmail && employeeData.loginCredentials?.password && employeeData.loginCredentials?.isActive) {
+        console.log('🔐 Creating auth user for employee login...');
+        
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: employeeData.loginCredentials.loginEmail,
+          password: employeeData.loginCredentials.password,
+          options: {
+            data: {
+              full_name: employeeData.name,
+              role: 'employee'
+            }
+          }
+        });
+
+        if (authError) {
+          console.error('❌ Error creating auth user:', authError);
+          // Don't throw - continue with employee creation without auth
+          toast({
+            title: "Auth Warning",
+            description: `Employee created but login may not work: ${authError.message}`,
+            variant: "destructive",
+          });
+        } else if (authData.user) {
+          authUserId = authData.user.id;
+          console.log('✅ Auth user created:', authUserId);
+        }
+      }
 
       // Create the main employee record
       const { data: newEmployee, error: employeeError } = await supabase
@@ -30,7 +62,8 @@ export const useEmployeeCRUD = (refreshEmployees: () => Promise<void>) => {
           date_of_birth: employeeData.dateOfBirth,
           profile_picture_url: employeeData.profilePicture,
           manager: employeeData.manager,
-          base_salary: employeeData.baseSalary
+          base_salary: employeeData.baseSalary,
+          user_id: authUserId // Link to auth user if created
         })
         .select()
         .single();
@@ -75,9 +108,13 @@ export const useEmployeeCRUD = (refreshEmployees: () => Promise<void>) => {
 
       await refreshEmployees();
       
+      const loginInfo = authUserId 
+        ? ` Login email: ${employeeData.loginCredentials?.loginEmail}`
+        : '';
+      
       toast({
         title: "Success",
-        description: `Employee ${employeeData.name} added successfully`,
+        description: `Employee ${employeeData.name} added successfully.${loginInfo}`,
       });
 
     } catch (error: any) {

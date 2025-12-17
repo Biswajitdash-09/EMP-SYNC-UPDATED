@@ -1,123 +1,259 @@
 
 /**
  * Employee Authentication Service
- * Handles employee login validation and data retrieval
+ * Handles employee login validation using Supabase Auth
  * Syncs with the main employee records from admin portal
  */
 
-import { Employee } from '@/types/employee';
-import { getAllEmployeesWithUpdates } from './employeeProfileService';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+  status: 'Active' | 'Probation' | 'Terminated';
+  phone: string;
+  address: string;
+  dateOfBirth: string;
+  joinDate: string;
+  manager: string;
+  baseSalary: number;
+  profilePicture?: string;
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+}
 
 export interface EmployeeAuthData {
   employee: Employee;
   loginTime: string;
   role: 'employee';
+  userId: string;
 }
 
 /**
- * Get all employees with applied profile updates
+ * Fetch emergency contact for an employee
  */
-const getAllEmployees = (): Employee[] => {
-  return getAllEmployeesWithUpdates();
+const fetchEmergencyContact = async (employeeId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('employee_emergency_contacts')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { name: '', phone: '', relationship: '' };
+    }
+
+    return {
+      name: data.name,
+      phone: data.phone,
+      relationship: data.relationship
+    };
+  } catch {
+    return { name: '', phone: '', relationship: '' };
+  }
 };
 
 /**
- * Authenticate employee using login credentials
+ * Transform database employee to app employee format
+ */
+const transformEmployee = async (dbEmployee: any): Promise<Employee> => {
+  const emergencyContact = await fetchEmergencyContact(dbEmployee.id);
+  
+  return {
+    id: dbEmployee.id,
+    name: dbEmployee.full_name,
+    email: dbEmployee.email,
+    department: dbEmployee.department,
+    role: dbEmployee.position,
+    status: dbEmployee.status,
+    phone: dbEmployee.phone || '',
+    address: dbEmployee.address || '',
+    dateOfBirth: dbEmployee.date_of_birth || '',
+    joinDate: dbEmployee.join_date,
+    manager: dbEmployee.manager || '',
+    baseSalary: dbEmployee.base_salary || 0,
+    profilePicture: dbEmployee.profile_picture_url || undefined,
+    emergencyContact
+  };
+};
+
+/**
+ * Authenticate employee using Supabase Auth
  * Returns employee data if credentials are valid
  */
-export const authenticateEmployee = (email: string, password: string): EmployeeAuthData | null => {
-  console.log('🔐 Starting authentication for:', email);
+export const authenticateEmployee = async (email: string, password: string): Promise<EmployeeAuthData | null> => {
+  console.log('🔐 Starting Supabase authentication for:', email);
   
-  const employees = getAllEmployees();
-  console.log('📊 Total employees loaded:', employees.length);
-  
-  // Filter active employees with login credentials first
-  const activeEmployees = employees.filter(emp => 
-    emp.status === 'Active' && 
-    emp.loginCredentials?.isActive === true &&
-    emp.loginCredentials?.loginEmail &&
-    emp.loginCredentials?.password
-  );
-  
-  console.log('✅ Active employees with credentials:', activeEmployees.length);
-  console.log('🔐 Authenticating against unique employee passwords...');
-  
-  // Find matching employee
-  const employee = activeEmployees.find(emp => {
-    const emailMatch = emp.loginCredentials!.loginEmail.toLowerCase().trim() === email.toLowerCase().trim();
-    const passwordMatch = emp.loginCredentials!.password === password;
-    
-    if (emailMatch) {
-      console.log(`🔍 Found matching email for ${emp.name}:`, {
-        storedEmail: emp.loginCredentials!.loginEmail,
-        providedEmail: email,
-        passwordMatch: passwordMatch ? '✅' : '❌',
-        status: emp.status,
-        isActive: emp.loginCredentials!.isActive
-      });
-    }
-    
-    return emailMatch && passwordMatch;
-  });
-
-  if (employee) {
-    console.log('✅ Authentication successful for:', employee.name);
-    return {
-      employee,
-      loginTime: new Date().toISOString(),
-      role: 'employee'
-    };
-  }
-  
-  console.log('❌ Authentication failed for:', email);
-  console.log('💡 Available sample credentials (first 3 employees):');
-  activeEmployees.slice(0, 3).forEach(emp => {
-    console.log(`   - ${emp.loginCredentials?.loginEmail} / ${emp.loginCredentials?.password}`);
-  });
-  
-  return null;
-};
-
-/**
- * Get employee data by ID (for refreshing data)
- */
-export const getEmployeeById = (employeeId: string): Employee | null => {
-  const employees = getAllEmployees();
-  return employees.find(emp => emp.id === employeeId) || null;
-};
-
-/**
- * Check if employee session is valid
- */
-export const validateEmployeeSession = (): EmployeeAuthData | null => {
   try {
-    const authData = localStorage.getItem('employee-auth');
-    if (!authData) return null;
+    // Sign in with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim()
+    });
 
-    const parsed = JSON.parse(authData) as EmployeeAuthData;
-    
-    // Refresh employee data to ensure it's in sync with admin portal
-    const currentEmployee = getEmployeeById(parsed.employee.id);
-    if (!currentEmployee || !currentEmployee.loginCredentials?.isActive) {
-      // Employee no longer exists or is inactive, clear session
-      localStorage.removeItem('employee-auth');
+    if (authError) {
+      console.log('❌ Supabase auth failed:', authError.message);
       return null;
     }
 
-    // Return updated employee data
+    if (!authData.user) {
+      console.log('❌ No user returned from auth');
+      return null;
+    }
+
+    console.log('✅ Supabase auth successful, checking role...');
+
+    // Check if user has employee role
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', authData.user.id)
+      .single();
+
+    if (roleError || !roleData) {
+      console.log('❌ Could not fetch user role:', roleError?.message);
+      // Sign out the user since they don't have proper role
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    // Allow both 'employee' and 'admin' roles to access employee dashboard
+    if (roleData.role !== 'employee' && roleData.role !== 'admin') {
+      console.log('❌ User does not have employee or admin role:', roleData.role);
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    console.log('✅ User has valid role:', roleData.role);
+
+    // Fetch employee data linked to this auth user
+    const { data: employeeData, error: employeeError } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('user_id', authData.user.id)
+      .single();
+
+    if (employeeError || !employeeData) {
+      console.log('❌ Could not fetch employee data:', employeeError?.message);
+      // Try to find employee by email as fallback
+      const { data: employeeByEmail, error: emailError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', email.trim())
+        .single();
+
+      if (emailError || !employeeByEmail) {
+        console.log('❌ No employee record found for this user');
+        await supabase.auth.signOut();
+        return null;
+      }
+
+      // Update employee record with user_id
+      await supabase
+        .from('employees')
+        .update({ user_id: authData.user.id })
+        .eq('id', employeeByEmail.id);
+
+      console.log('✅ Employee found and linked by email:', employeeByEmail.full_name);
+      
+      const employee = await transformEmployee(employeeByEmail);
+      
+      return {
+        employee,
+        loginTime: new Date().toISOString(),
+        role: 'employee',
+        userId: authData.user.id
+      };
+    }
+
+    console.log('✅ Authentication successful for:', employeeData.full_name);
+    
+    const employee = await transformEmployee(employeeData);
+    
     return {
-      ...parsed,
-      employee: currentEmployee
+      employee,
+      loginTime: new Date().toISOString(),
+      role: 'employee',
+      userId: authData.user.id
     };
+
   } catch (error) {
-    console.error('Error validating employee session:', error);
-    localStorage.removeItem('employee-auth');
+    console.error('💥 Authentication error:', error);
     return null;
   }
 };
 
 /**
- * Store employee authentication data
+ * Get employee data by user ID (for refreshing data)
+ */
+export const getEmployeeByUserId = async (userId: string): Promise<Employee | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+
+    return await transformEmployee(data);
+  } catch (error) {
+    console.error('Error fetching employee by user ID:', error);
+    return null;
+  }
+};
+
+/**
+ * Check if employee session is valid using Supabase session
+ */
+export const validateEmployeeSession = async (): Promise<EmployeeAuthData | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      return null;
+    }
+
+    // Check role
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (!roleData || (roleData.role !== 'employee' && roleData.role !== 'admin')) {
+      return null;
+    }
+
+    // Fetch employee data
+    const employee = await getEmployeeByUserId(session.user.id);
+    
+    if (!employee) {
+      return null;
+    }
+
+    return {
+      employee,
+      loginTime: new Date().toISOString(),
+      role: 'employee',
+      userId: session.user.id
+    };
+  } catch (error) {
+    console.error('Error validating employee session:', error);
+    return null;
+  }
+};
+
+/**
+ * Store employee authentication data (legacy support)
  */
 export const storeEmployeeAuth = (authData: EmployeeAuthData): void => {
   localStorage.setItem('employee-auth', JSON.stringify(authData));
@@ -126,6 +262,7 @@ export const storeEmployeeAuth = (authData: EmployeeAuthData): void => {
 /**
  * Clear employee authentication data
  */
-export const clearEmployeeAuth = (): void => {
+export const clearEmployeeAuth = async (): Promise<void> => {
   localStorage.removeItem('employee-auth');
+  await supabase.auth.signOut();
 };

@@ -1,8 +1,8 @@
 
 export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD'
+    currency: 'INR'
   }).format(amount);
 };
 
@@ -131,7 +131,7 @@ Average Monthly Pay: ${formatCurrency(avgNetPay)}
 ==============================================
 
 This report contains historical payroll data for the specified period.
-All amounts are in USD.
+All amounts are in INR.
 
 © ${new Date().getFullYear()} Company Payroll System
     `;

@@ -2,12 +2,33 @@
 /**
  * Employee Authentication Context
  * Provides employee authentication state throughout the app
- * Enhanced with better error handling and data validation
+ * Enhanced with Supabase auth integration
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Employee } from '@/types/employee';
 import { validateEmployeeSession, EmployeeAuthData, clearEmployeeAuth } from '@/services/employeeAuthService';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+  status: 'Active' | 'Probation' | 'Terminated';
+  phone: string;
+  address: string;
+  dateOfBirth: string;
+  joinDate: string;
+  manager: string;
+  baseSalary: number;
+  profilePicture?: string;
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+}
 
 interface EmployeeAuthContextType {
   employee: Employee | null;
@@ -32,7 +53,7 @@ export const EmployeeAuthProvider = ({ children }: EmployeeAuthProviderProps) =>
   const refreshEmployeeData = useCallback(async (): Promise<void> => {
     try {
       setError(null);
-      const authData = validateEmployeeSession();
+      const authData = await validateEmployeeSession();
       
       if (authData) {
         // Validate employee data integrity
@@ -51,7 +72,7 @@ export const EmployeeAuthProvider = ({ children }: EmployeeAuthProviderProps) =>
       setError(error instanceof Error ? error.message : 'Failed to refresh employee data');
       setEmployee(null);
       // Clear potentially corrupted session
-      clearEmployeeAuth();
+      await clearEmployeeAuth();
     } finally {
       setIsLoading(false);
     }
@@ -64,12 +85,26 @@ export const EmployeeAuthProvider = ({ children }: EmployeeAuthProviderProps) =>
     };
 
     initializeAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state changed:', event);
+      if (event === 'SIGNED_OUT') {
+        setEmployee(null);
+      } else if (event === 'SIGNED_IN' && session) {
+        await refreshEmployeeData();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [refreshEmployeeData]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
       console.log('🚪 Logging out employee...');
-      clearEmployeeAuth();
+      await clearEmployeeAuth();
       setEmployee(null);
       setError(null);
     } catch (error) {

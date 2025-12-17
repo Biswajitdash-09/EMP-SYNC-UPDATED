@@ -243,9 +243,9 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="fixed inset-0 bg-white dark:bg-gray-900 animate-scale-in">
+      <div className="fixed inset-0 bg-white dark:bg-gray-900 animate-scale-in flex flex-col">
         {/* Header */}
-        <div className="h-16 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between px-4 sm:px-6 shadow-lg">
+        <div className="flex-shrink-0 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between px-4 sm:px-6 shadow-lg">
           <div className="flex items-center space-x-3">
             <div className="relative">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -280,7 +280,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Quick Access Questions */}
-        <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick questions:</p>
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {quickAccessQuestions.map((question, index) => (
@@ -298,8 +298,8 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Chat Messages Area */}
-        <div className="flex-1 overflow-hidden" style={{ height: 'calc(100vh - 16rem)' }}>
+        {/* Chat Messages Area - Takes remaining space */}
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ScrollArea className="h-full px-4 sm:px-6 py-4">
             <div className="space-y-4 max-w-4xl mx-auto">
               {messages.map((message) => (
@@ -388,7 +388,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ isOpen, onClose }) => {
 
         {/* Selected Files Preview */}
         {selectedFiles.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-2 bg-gray-50 dark:bg-gray-800">
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-2 bg-gray-50 dark:bg-gray-800">
             <div className="max-w-4xl mx-auto">
               <div className="flex flex-wrap gap-2">
                 {selectedFiles.map((file, idx) => (
@@ -414,8 +414,8 @@ const AIChatbot: React.FC<AIChatbotProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* Input Area */}
-        <div className="h-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
+        {/* Input Area - Fixed at bottom */}
+        <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex space-x-3">
               <input
